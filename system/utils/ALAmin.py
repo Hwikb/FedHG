@@ -16,8 +16,7 @@ class ALAmin:
                 eta: float = 1,
                 device: str = 'cpu',
                 threshold: float = 0.1,
-                num_pre_loss: int = 10,
-                 ) -> None:
+                num_pre_loss: int = 10) -> None:
         """
         Initialize ALA module
 
@@ -39,15 +38,16 @@ class ALAmin:
 
         self.cid = cid
         self.loss = loss
+
         self.batch_size = batch_size
+
         self.layer_idx = layer_idx
         self.eta = eta
         self.threshold = threshold
         self.num_pre_loss = num_pre_loss
         self.device = device
 
-
-        self.weights = None# Learnable local aggregation weights.
+        self.weights = None # Learnable local aggregation weights.
         self.start_phase = True
 
 
@@ -57,8 +57,7 @@ class ALAmin:
                             generative_model:nn.Module,
                                    qualified_labels,
                                    optimizerH,
-                                   round,
-                                   tground,
+                                   round
                                    ) -> None:
         """
         Generates the Dataloader for the randomly sampled local training data and
@@ -71,6 +70,9 @@ class ALAmin:
         Returns:
             None.
         """
+
+        # randomly sample partial local training data
+
         # obtain the references of the parameters
         params_g = list(global_model.parameters())
         params = list(local_model.parameters())
@@ -100,8 +102,9 @@ class ALAmin:
         # used to obtain the gradient of higher layers
         # no need to use optimizer.step(), so lr=0
         optimizer = torch.optim.SGD(params_tp, lr=0)
+
         # initialize the weight to all ones in the beginning
-        if self.weights== None:
+        if self.weights == None:
             self.weights = [torch.ones_like(param.data).to(self.device) for param in params_p]
 
         # initialize the higher layers in the temp local model
@@ -113,7 +116,7 @@ class ALAmin:
         losses = []  # record losses
         cnt = 0  # weight training iteration counter
         if round==1:
-            j=tground
+            j=500
         else:
             j=0
         for i in range(j):
@@ -151,4 +154,3 @@ class ALAmin:
         # obtain initialized local model
         for param, param_t in zip(params_p, params_tp):
             param.data = param_t.data.clone()
-
