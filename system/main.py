@@ -1,21 +1,3 @@
-# PFLlib: Personalized Federated Learning Algorithm Library
-# Copyright (C) 2021  Jianqing Zhang
-
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License along
-# with this program; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
-#!/usr/bin/env python
 import copy
 import torch
 import argparse
@@ -28,7 +10,9 @@ import logging
 import ipdb
 from flcore.servers.serveravg import FedAvg
 from flcore.servers.serverhg import FedHG
+
 from flcore.trainmodel.models import *
+
 from utils.result_utils import average_data
 from utils.mem_utils import MemReporter
 
@@ -39,12 +23,12 @@ warnings.simplefilter("ignore")
 torch.manual_seed(0)
 
 # hyper-params for Text tasks
-vocab_size = 98635   #98635 for AG_News and 399198 for Sogou_News
-max_len=200
-emb_dim=32
+vocab_size = 98635  # 98635 for AG_News and 399198 for Sogou_News
+max_len = 200
+emb_dim = 32
+
 
 def run(args):
-
     time_list = []
     reporter = MemReporter()
     model_str = args.model
@@ -55,16 +39,16 @@ def run(args):
         start = time.time()
 
         # Generate args.model
-        #算法所对应的网络
-        if model_str == "mlr": # convex
+        # 算法所对应的网络
+        if model_str == "mlr":  # convex
             if "MNIST" in args.dataset:
-                args.model = Mclr_Logistic(1*28*28, num_classes=args.num_classes).to(args.device)
+                args.model = Mclr_Logistic(1 * 28 * 28, num_classes=args.num_classes).to(args.device)
             elif "Cifar10" in args.dataset:
-                args.model = Mclr_Logistic(3*32*32, num_classes=args.num_classes).to(args.device)
+                args.model = Mclr_Logistic(3 * 32 * 32, num_classes=args.num_classes).to(args.device)
             else:
                 args.model = Mclr_Logistic(60, num_classes=args.num_classes).to(args.device)
 
-        elif model_str == "cnn": # non-convex
+        elif model_str == "cnn":  # non-convex
             if "MNIST" in args.dataset:
                 args.model = FedAvgCNN(in_features=1, num_classes=args.num_classes, dim=1024).to(args.device)
             elif "Cifar10" in args.dataset:
@@ -77,41 +61,23 @@ def run(args):
             else:
                 args.model = FedAvgCNN(in_features=3, num_classes=args.num_classes, dim=10816).to(args.device)
 
-        elif model_str == "dnn": # non-convex
+        elif model_str == "dnn":  # non-convex
             if "MNIST" in args.dataset:
-                args.model = DNN(1*28*28, 100, num_classes=args.num_classes).to(args.device)
+                args.model = DNN(1 * 28 * 28, 100, num_classes=args.num_classes).to(args.device)
             elif "Cifar10" in args.dataset:
-                args.model = DNN(3*32*32, 100, num_classes=args.num_classes).to(args.device)
+                args.model = DNN(3 * 32 * 32, 100, num_classes=args.num_classes).to(args.device)
             else:
                 args.model = DNN(60, 20, num_classes=args.num_classes).to(args.device)
-        
+
         elif model_str == "resnet":
             args.model = torchvision.models.resnet18(pretrained=False, num_classes=args.num_classes).to(args.device)
-            
+
             # args.model = torchvision.models.resnet18(pretrained=True).to(args.device)
             # feature_dim = list(args.model.fc.parameters())[0].shape[1]
             # args.model.fc = nn.Linear(feature_dim, args.num_classes).to(args.device)
             #
             # args.model = resnet18(num_classes=args.num_classes, has_bn=True, bn_block_num=4).to(args.device)
             #
-
-            # args.model = alexnet(pretrained=True).to(args.device)
-            # feature_dim = list(args.model.fc.parameters())[0].shape[1]
-            # args.model.fc = nn.Linear(feature_dim, args.num_classes).to(args.device)
-            
-        elif model_str == "googlenet":
-            args.model = torchvision.models.googlenet(pretrained=False, aux_logits=False, 
-                                                      num_classes=args.num_classes).to(args.device)
-            
-            # args.model = torchvision.models.googlenet(pretrained=True, aux_logits=False).to(args.device)
-            # feature_dim = list(args.model.fc.parameters())[0].shape[1]
-            # args.model.fc = nn.Linear(feature_dim, args.num_classes).to(args.device)
-
-
-            # args.model = mobilenet_v2(pretrained=True).to(args.device)
-            # feature_dim = list(args.model.fc.parameters())[0].shape[1]
-            # args.model.fc = nn.Linear(feature_dim, args.num_classes).to(args.device)
-            
 
 
         else:
@@ -120,33 +86,27 @@ def run(args):
         print(args.model)
 
         # select algorithm
-        #所用到的具体算法
+        # 所用到的具体算法
         if args.algorithm == "FedAvg":
             args.head = copy.deepcopy(args.model.fc)
-            #深复制确保的是  独立出来的全连接层赋给arg.head。这样arg.head不会随模型的改变而改变
+            # 深复制确保的是  独立出来的全连接层赋给arg.head。这样arg.head不会随模型的改变而改变
             args.model.fc = nn.Identity()
             args.model = BaseHeadSplit(args.model, args.head)
             server = FedAvg(args, i)
-
-
 
         elif args.algorithm == "FedHG":
             args.head = copy.deepcopy(args.model.fc)
             args.model.fc = nn.Identity()
             args.model = BaseHeadSplit(args.model, args.head)
             server = FedHG(args, i)
-
-
-            
         else:
             raise NotImplementedError
 
         server.train()
 
-        time_list.append(time.time()-start)
+        time_list.append(time.time() - start)
 
     print(f"\nAverage time cost: {round(np.average(time_list), 2)}s.")
-    
 
     # Global average
     average_data(dataset=args.dataset, algorithm=args.algorithm, goal=args.goal, times=args.times)
@@ -161,7 +121,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     # general
-    parser.add_argument('-go', "--goal", type=str, default="test", 
+    parser.add_argument('-go', "--goal", type=str, default="test",
                         help="The goal for this experiment")
     parser.add_argument('-dev', "--device", type=str, default="cuda",
                         choices=["cpu", "cuda"])
@@ -171,11 +131,11 @@ if __name__ == "__main__":
     parser.add_argument('-m', "--model", type=str, default="cnn")
     parser.add_argument('-lbs', "--batch_size", type=int, default=10)
     parser.add_argument('-lr', "--local_learning_rate", type=float, default=0.005,
-                        help="Local learning rate")#学习率是否要衰减
-    parser.add_argument('-ld', "--learning_rate_decay", type=bool, default=False)#学习率衰减的系数
+                        help="Local learning rate")  # 学习率是否要衰减
+    parser.add_argument('-ld', "--learning_rate_decay", type=bool, default=False)  # 学习率衰减的系数
     parser.add_argument('-ldg', "--learning_rate_decay_gamma", type=float, default=0.99)
     parser.add_argument('-gr', "--global_rounds", type=int, default=2000)
-    parser.add_argument('-ls', "--local_epochs", type=int, default=1, 
+    parser.add_argument('-ls', "--local_epochs", type=int, default=1,
                         help="Multiple update steps in one local epoch.")
     parser.add_argument('-algo', "--algorithm", type=str, default="FedAvg")
     parser.add_argument('-jr', "--join_ratio", type=float, default=1.0,
@@ -218,13 +178,10 @@ if __name__ == "__main__":
     parser.add_argument('-hd', "--hidden_dim", type=int, default=512)
     parser.add_argument('-se', "--server_epochs", type=int, default=500)
     parser.add_argument('-lf', "--localize_feature_extractor", type=bool, default=False)
-    parser.add_argument('-eth', "--etah", type=float, default=1.0)
-    parser.add_argument('-ph', "--layer_idxh", type=int, default=1,
+    parser.add_argument('-et', "--eta", type=float, default=1.0)
+    parser.add_argument('-s', "--rand_percent", type=int, default=80)
+    parser.add_argument('-p', "--layer_idx", type=int, default=2,
                         help="More fine-graind than its original paper.")
-    parser.add_argument('-tg',"--tground",type=int,default=500)
-    parser.add_argument('-a',"--alphag",type=float,default=15)
-    parser.add_argument('-b',"--betag",type=float,default=1)
-
 
     args = parser.parse_args()
 
@@ -274,12 +231,8 @@ if __name__ == "__main__":
     #     activities=[
     #         torch.profiler.ProfilerActivity.CPU,
     #         torch.profiler.ProfilerActivity.CUDA],
-    #     profile_memory=True, 
+    #     profile_memory=True,
     #     on_trace_ready=torch.profiler.tensorboard_trace_handler('./log')
     #     ) as prof:
     # with torch.autograd.profiler.profile(profile_memory=True) as prof:
     run(args)
-
-    
-    # print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=20))
-    # print(f"\nTotal time cost: {round(time.time()-total_start, 2)}s.")
