@@ -1,20 +1,3 @@
-# PFLlib: Personalized Federated Learning Algorithm Library
-# Copyright (C) 2021  Jianqing Zhang
-
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License along
-# with this program; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
 import os
 import ujson
 import numpy as np
@@ -23,7 +6,7 @@ from sklearn.model_selection import train_test_split
 
 batch_size = 10
 train_ratio = 0.75 # merge original training set and test set, then split it manually. 
-alpha = 0.5# for Dirichlet distribution. 100 for exdir,即代表的就是狄利克雷系数
+alpha = 0.1  # for Dirichlet distribution. 100 for exdir,即代表的就是狄利克雷系数
 
 def check(config_path, train_path, test_path, num_clients, niid=False, 
         balance=True, partition=None):
