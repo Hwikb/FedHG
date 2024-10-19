@@ -1,25 +1,10 @@
-# PFLlib: Personalized Federated Learning Algorithm Library
-# Copyright (C) 2021  Jianqing Zhang
-
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License along
-# with this program; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
 import torch
 import numpy as np
 import time
 from flcore.clients.clientbase import Client
 from utils.ALAmin import ALAmin
+from utils.data_utils import read_client_data
+
 
 #
 class clientHG(Client):
@@ -47,11 +32,11 @@ class clientHG(Client):
         self.qualified_labels = []
         self.generative_model = None
         self.localize_feature_extractor = args.localize_feature_extractor
+        self.eta = args.eta
+        self.layer_idx = args.layer_idx
 
-        self.eta = args.etah
-        self.layer_idx = args.layer_idxh
-        self.ALAmin=ALAmin(self.id, self.loss,  self.batch_size,
-                     self.layer_idx, self.eta, self.device)
+        self.ALAmin = ALAmin(self.id, self.loss, self.batch_size,
+                             self.layer_idx, self.eta, self.device)
 
     def train(self):
         trainloader = self.load_train_data()
@@ -94,9 +79,6 @@ class clientHG(Client):
         self.train_time_cost['num_rounds'] += 1
         self.train_time_cost['total_cost'] += time.time() - start_time
 
-
-            
-        
     def set_parameters(self, model, generative_model):
         if self.localize_feature_extractor:
             for new_param, old_param in zip(model.parameters(), self.model.head.parameters()):
@@ -107,8 +89,9 @@ class clientHG(Client):
 
         self.generative_model = generative_model
 
-    def set_parametersH(self,grnerative_model):
-        self.generative_model=grnerative_model
+    def set_parametersH(self, grnerative_model):
+        self.generative_model = grnerative_model
+
     def train_metrics(self):
         trainloader = self.load_train_data()
         # self.model = self.load_model('model')
@@ -135,5 +118,6 @@ class clientHG(Client):
 
         return losses, train_num
 
-    def local_initialization(self, received_global_model,round,tground):
-        self.ALAmin.adaptive_local_aggregation(received_global_model, self.model,self.generative_model,self.qualified_labels,self.optimizer,round,tground)
+    def local_initialization(self, received_global_model, round):
+        self.ALAmin.adaptive_local_aggregation(received_global_model, self.model, self.generative_model,
+                                               self.qualified_labels, self.optimizer, round)
